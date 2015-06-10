@@ -64,6 +64,11 @@ public class StaticSpatialMap<V> implements SpatialMap<Integer,V> {
 	private int nonSpatialCapacity = 10;
 
 	/**
+	 * Quick accessor of index size.
+	 */
+	private int size = 0;
+
+	/**
 	 * Fast accessor for if mode has transitioned to subdivision
 	 * spatial only (not using non-spatial store).
 	 */
@@ -76,7 +81,7 @@ public class StaticSpatialMap<V> implements SpatialMap<Integer,V> {
 	/**
 	 * Non spatial storage variable
 	 */
-	private HashMap<StaticSpatialMap.Key,V> nonSpatial;
+	private HashSet<StaticSpatialMap.Entry<V>> nonSpatial;
 
 	/**
 	 * Spatial storage variable.
@@ -118,6 +123,7 @@ public class StaticSpatialMap<V> implements SpatialMap<Integer,V> {
 
 		nonSpatial = null;
 		spatial = null;
+		size = 0;
 
 		resetInternals();
 
@@ -135,23 +141,62 @@ public class StaticSpatialMap<V> implements SpatialMap<Integer,V> {
 	private void resetInternals() {
 		preOffset = Math.pow(Math.floor( cellsize / 2.0 ), power + 1.0);
 		moduloFactor = Math.pow( cellsize, power + 1.0 );
-		reductionFactory = Math.pow( cellsize, power );
-		subdivide = power > 0;
-		fullSpatial = nonSpatialCapacity < 1;
+		reductionFactor = Math.pow( cellsize, power );
 
+		checkFlags();
+
+		prepareStorage();
+	}
+
+	/**
+	 * Based on flag settings, configures appropriate storages for data
+	 */
+	private void prepareStorage() {
 		if (fullSpatial) {
 			if (spatial == null) {
 				spatial = new HashMap<Integer, SpatialMap<Integer, V>>();
 			}
 		} else {
 			if (nonSpatial == null) {
-				nonSpatial = new HashMap<StaticSpatialMap.Key, V>();
+				nonSpatial = new HashSet<StaticSpatialMap.Entry<V>();
 			}
 		}
 	}
 
+	/**
+	 * Quickly sets critial flags.
+	 */
+	private void checkFlags() {
+		subdivide = power > 0;
+		fullSpatial = fullSpatial || size > nonSpatialCapacity || nonSpatialCapacity < 1;
+	}
+
+	/**
+	 * Adds V to the map at location x,y,z. Returns whatever used to be
+	 * there, if replacing anything, null otherwise.
+	 *
+	 * @param x the X coord
+	 * @param y the Y coord
+	 * @param z the Z coord
+	 * @param value the V type value to insert into the spatial map.
+	 */
 	public V put(Integer x, Integer y, Integer z, V value) {
-		
+		if (fullSpatial) {
+			// Create local index, the forward to the appropriate submap.
+
+	}
+
+	/**
+	 * Transforms a given location index set into a Key, localized to this map.
+	 */
+	private Key transformToLocal(Integer x, Integer y, Integer z) {
+		// adjust for Java's lack of modulus operator -- http://mindprod.com/jgloss/modulus.html
+		int x2 = (int) Math.floor( ( ( ( ( (x + preOffset) % moduloFactor) + moduloFactor)
+						% moduloFactor) - preOffset ) / reductionFactor);
+		int z2 = (int) Math.floor( ( ( ( ( (z + preOffset) % moduloFactor) + moduloFactor)
+						% moduloFactor) - preOffset ) / reductionFactor);
+
+		int index = (int) Math.
 	}
 
 	/*               *
@@ -159,7 +204,8 @@ public class StaticSpatialMap<V> implements SpatialMap<Integer,V> {
 	 *               */
 
 	/**
-	 * Key is a nice object representation of the natural indices
+	 * The key class allows ordering and internal representation along
+	 * either original, modified, or index representation of keys.
 	 */
 	public static class Key implements SpatialMap.Key<Integer>{
 		private Integer x;
@@ -210,15 +256,20 @@ public class StaticSpatialMap<V> implements SpatialMap<Integer,V> {
 	}
 
 	/**
-	 * Entry for this map
+	 * Entry holds a key and value pair together as one. 
 	 */
 	public static class Entry<V> implements SpatialMap.Entry<Integer, V> {
-		private Key<Integer> key;
+		private StaticSpatialMap.Key<Integer> key;
 		private V value;
 
 
-		public StaticSpatialMap.Key<Integer> getKey() {
-			return k;
+		public Entry(StaticSpatialMap.Key<Integer> key, V value) {
+			this.key = key;
+			this.value = value;
+		}
+
+		public SpatialMap.Key<Integer> getKey() {
+			return key;
 		}
 
 		public V getValue() {
