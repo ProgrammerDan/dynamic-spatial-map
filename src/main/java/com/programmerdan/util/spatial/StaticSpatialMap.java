@@ -182,7 +182,24 @@ public class StaticSpatialMap<V> implements SpatialMap<Integer,V> {
 	 */
 	public V put(Integer x, Integer y, Integer z, V value) {
 		if (fullSpatial) {
-			// Create local index, the forward to the appropriate submap.
+			// Create local index, then forward to the appropriate submap.
+			Key tempKey = transformToLocal(x,y,z);
+			Entry<V> tempEntry = new Entry<V>(tempKey, value);
+			SpatialMap<Integer, V> subMap = null;
+			if (spatial.containsKey(tempKey.getIdx()) ) {
+				subMap = spatial.get(tempKey.getIdx());
+			} else {
+				if (subdivide) {
+					subMap = spatial.put(tempKey.getIdx(), 
+							new StaticSpatialMap<V>(this.cellSize, this.power - 1, this.
+			 subMap.put(
+
+		} else {
+			// Create real index, and store in nonspatial map.
+			Key tempKey = representTrue(x,y,z);
+			Entry<V> tempEntry = new Entry<V>(tempKey, value);
+			nonSpatial.put(tempEntry);
+		}
 
 	}
 
@@ -278,6 +295,17 @@ public class StaticSpatialMap<V> implements SpatialMap<Integer,V> {
 
 		public void setValue(V value) {
 			this.value = value;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (obj instanceof Key) {
+				return this.key.equals(obj);
+			} else if (obj instanceof Entry) {
+				return this.key.equals( ((Entry) obj).getKey() );
+			}
+
+			return false;
 		}
 	}
 }
