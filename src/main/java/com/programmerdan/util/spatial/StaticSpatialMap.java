@@ -184,23 +184,25 @@ public class StaticSpatialMap<V> implements SpatialMap<Integer,V> {
 		if (fullSpatial) {
 			// Create local index, then forward to the appropriate submap.
 			Key tempKey = transformToLocal(x,y,z);
-			Entry<V> tempEntry = new Entry<V>(tempKey, value);
 			SpatialMap<Integer, V> subMap = null;
 			if (spatial.containsKey(tempKey.getIdx()) ) {
 				subMap = spatial.get(tempKey.getIdx());
 			} else {
 				if (subdivide) {
-					subMap = spatial.put(tempKey.getIdx(), 
-							new StaticSpatialMap<V>(this.cellSize, this.power - 1, this.
-			 subMap.put(
+					subMap = new StaticSpatialMap<V>(this.cellSize, this.power - 1, this.nonSpatialCapacity);
+				} else {
+					subMap = new VerticalSpatialMap<V>();
+				}
+				spatial.put(tempKey.getIdx(), subMap); 
+			}
 
+			subMap.put(x,y,z, value); // delegate real index to submap.
 		} else {
 			// Create real index, and store in nonspatial map.
 			Key tempKey = representTrue(x,y,z);
 			Entry<V> tempEntry = new Entry<V>(tempKey, value);
 			nonSpatial.put(tempEntry);
 		}
-
 	}
 
 	/**
@@ -213,7 +215,9 @@ public class StaticSpatialMap<V> implements SpatialMap<Integer,V> {
 		int z2 = (int) Math.floor( ( ( ( ( (z + preOffset) % moduloFactor) + moduloFactor)
 						% moduloFactor) - preOffset ) / reductionFactor);
 
-		int index = (int) Math.
+		// TODO: do the above in stages, compute index before finalizing x,z computation
+		// also do this when not exhausted.
+		// int index = (int) Math.
 	}
 
 	/*               *
